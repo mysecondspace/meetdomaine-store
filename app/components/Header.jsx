@@ -1,7 +1,9 @@
 import {Suspense} from 'react';
 import {Await, NavLink, useAsyncValue} from '@remix-run/react';
 import {useAnalytics, useOptimisticCart} from '@shopify/hydrogen';
+import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import {useAside} from '~/components/Aside';
+import clsx from 'clsx';
 
 /**
  * @param {HeaderProps}
@@ -66,7 +68,7 @@ export function HeaderMenu({
             : item.url;
         return (
           <NavLink
-            className="header-menu-item"
+            className="header-menu-item hidden"
             end
             key={item.id}
             onClick={close}
@@ -89,7 +91,12 @@ function HeaderCtas({isLoggedIn, cart}) {
   return (
     <nav className="header-ctas" role="navigation">
       <HeaderMenuMobileToggle />
-      <NavLink prefetch="intent" to="/account" style={activeLinkStyle}>
+      <NavLink
+        prefetch="intent"
+        to="/account"
+        style={activeLinkStyle}
+        className="hidden"
+      >
         <Suspense fallback="Sign in">
           <Await resolve={isLoggedIn} errorElement="Sign in">
             {(isLoggedIn) => (isLoggedIn ? 'Account' : 'Sign in')}
@@ -117,7 +124,7 @@ function HeaderMenuMobileToggle() {
 function SearchToggle() {
   const {open} = useAside();
   return (
-    <button className="reset" onClick={() => open('search')}>
+    <button className="reset hidden" onClick={() => open('search')}>
       Search
     </button>
   );
@@ -133,6 +140,7 @@ function CartBadge({count}) {
   return (
     <a
       href="/cart"
+      className="relative"
       onClick={(e) => {
         e.preventDefault();
         open('cart');
@@ -144,7 +152,19 @@ function CartBadge({count}) {
         });
       }}
     >
-      Cart {count === null ? <span>&nbsp;</span> : count}
+      <ShoppingCartOutlinedIcon
+        classes={{
+          root: 'size-8 [&>path]:fill-primary',
+        }}
+      />
+      <sup
+        className={clsx(
+          'absolute top-0 end-0 size-3 translate-x-[50%] -translate-y-[50%] flex justify-center items-center',
+          'bg-primary rounded-full font-bold text-white text-[0.625rem]',
+        )}
+      >
+        {count === null ? <span>&nbsp;</span> : count}
+      </sup>
     </a>
   );
 }

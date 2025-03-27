@@ -1,6 +1,8 @@
 import {Link, useNavigate} from '@remix-run/react';
 import {AddToCartButton} from './AddToCartButton';
+import {COLOR_MAP} from '~/constants';
 import {useAside} from './Aside';
+import clsx from 'clsx';
 
 /**
  * @param {{
@@ -19,7 +21,6 @@ export function ProductForm({productOptions, selectedVariant}) {
 
         return (
           <div className="product-options" key={option.name}>
-            <h5>{option.name}</h5>
             <div className="product-options-grid">
               {option.optionValues.map((value) => {
                 const {
@@ -65,14 +66,16 @@ export function ProductForm({productOptions, selectedVariant}) {
                   return (
                     <button
                       type="button"
-                      className={`product-options-item${
-                        exists && !selected ? ' link' : ''
-                      }`}
+                      className={clsx(
+                        exists && !selected && 'link',
+                        'relative rounded-full border size-[1.25rem]',
+                        selected
+                          ? 'border-white before:bg-primary before:absolute before:-start-[0.125rem] before:-top-[0.125rem] before:-z-1 before:rounded-full before:size-[1.375rem]'
+                          : 'border-transparent cursor-pointer',
+                        COLOR_MAP[name],
+                      )}
                       key={option.name + name}
                       style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
                         opacity: available ? 1 : 0.3,
                       }}
                       disabled={!exists}
@@ -84,9 +87,7 @@ export function ProductForm({productOptions, selectedVariant}) {
                           });
                         }
                       }}
-                    >
-                      <ProductOptionSwatch swatch={swatch} name={name} />
-                    </button>
+                    />
                   );
                 }
               })}

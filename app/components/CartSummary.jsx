@@ -1,5 +1,6 @@
 import {CartForm, Money} from '@shopify/hydrogen';
 import {useRef} from 'react';
+import clsx from 'clsx';
 
 /**
  * @param {CartSummaryProps}
@@ -9,9 +10,12 @@ export function CartSummary({cart, layout}) {
     layout === 'page' ? 'cart-summary-page' : 'cart-summary-aside';
 
   return (
-    <div aria-labelledby="cart-summary" className={className}>
+    <div
+      aria-labelledby="cart-summary"
+      className={clsx(className, 'flex flex-col gap-y-2')}
+    >
       <h4>Totals</h4>
-      <dl className="cart-subtotal">
+      <dl className="cart-subtotal flex gap-x-2">
         <dt>Subtotal</dt>
         <dd>
           {cart.cost?.subtotalAmount?.amount ? (
