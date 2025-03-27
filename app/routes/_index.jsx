@@ -1,6 +1,14 @@
 import {Await, useLoaderData, Link} from '@remix-run/react';
-import {Suspense} from 'react';
+import {Suspense, useState} from 'react';
 import {Image, Money} from '@shopify/hydrogen';
+import clsx from 'clsx';
+import {
+  getDefaultOption,
+  getSelectedVariant,
+  getSelectedImage,
+  getNextImage,
+} from '~/utils/product';
+import {COLOR_MAP} from '~/constants';
 
 /**
  * @type {MetaFunction}
@@ -62,7 +70,7 @@ export default function Homepage() {
   /** @type {LoaderReturnData} */
   const data = useLoaderData();
   return (
-    <div className="home">
+    <div className="mt-30">
       <FeaturedCollection collection={data.featuredCollection} />
       <RecommendedProducts products={data.recommendedProducts} />
     </div>
@@ -79,7 +87,7 @@ function FeaturedCollection({collection}) {
   const image = collection?.image;
   return (
     <Link
-      className="featured-collection"
+      className="featured-collection !hidden"
       to={`/collections/${collection.handle}`}
     >
       {image && (
@@ -99,36 +107,154 @@ function FeaturedCollection({collection}) {
  */
 function RecommendedProducts({products}) {
   return (
-    <div className="recommended-products">
-      <h2>Recommended Products</h2>
+    <>
       <Suspense fallback={<div>Loading...</div>}>
         <Await resolve={products}>
           {(response) => (
-            <div className="recommended-products-grid">
-              {response
-                ? response.products.nodes.map((product) => (
-                    <Link
-                      key={product.id}
-                      className="recommended-product"
-                      to={`/products/${product.handle}`}
-                    >
-                      <Image
-                        data={product.images.nodes[0]}
-                        aspectRatio="1/1"
-                        sizes="(min-width: 45em) 20vw, 50vw"
-                      />
-                      <h4>{product.title}</h4>
-                      <small>
-                        <Money data={product.priceRange.minVariantPrice} />
-                      </small>
-                    </Link>
-                  ))
-                : null}
+            // centered for this specific task only, because otherwise there is no need for it
+            <div className="flex flex-wrap gap-4 place-content-center">
+              {response?.products.nodes.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
             </div>
           )}
         </Await>
       </Suspense>
-      <br />
+    </>
+  );
+}
+
+function ProductCard({product}) {
+  const [selectedOption, setSelectedOption] = useState(
+    getDefaultOption(product),
+  );
+  const selectedVariant = getSelectedVariant(product, selectedOption);
+  const selectedImage = getSelectedImage(product, selectedOption);
+
+  const selectedVariantPrice =
+    selectedVariant?.price || product.priceRange.minVariantPrice;
+  const selectedVariantCompareAtPrice = selectedVariant?.compareAtPrice || null;
+
+  return (
+    <div className="group flex flex-col gap-y-[0.9375rem]">
+      <ProductImage
+        product={product}
+        selectedImage={selectedImage}
+        selectedVariantCompareAtPrice={selectedVariantCompareAtPrice}
+      />
+      {product.options.length > 0 && (
+        // some of the variants have different prices and "compare-at" prices to show that the price
+        // on the card changes due to changing variants, and "On Sale” appears when it’s needed
+        <ProductOptions
+          options={product.options}
+          selectedOption={selectedOption}
+          setSelectedOption={setSelectedOption}
+        />
+      )}
+      <ProductDetails
+        product={product}
+        selectedVariantPrice={selectedVariantPrice}
+        selectedVariantCompareAtPrice={selectedVariantCompareAtPrice}
+      />
+    </div>
+  );
+}
+
+function ProductImage({product, selectedImage, selectedVariantCompareAtPrice}) {
+  const commonImageStyles =
+    'object-contain transition-opacity duration-300 -z-1';
+
+  return (
+    <Link
+      className="relative flex border border-silver box-content rounded-[0.625rem] w-[19.6875rem] h-[21.25rem]"
+      to={`/products/${product.handle}`}
+    >
+      {selectedVariantCompareAtPrice && (
+        // this tag text is hardcoded here, but it can be replaced as dynamic data depending on our needs
+        <span
+          className={clsx(
+            'flex items-center absolute top-[1.25rem] start-[1.25rem] h-[1.8125rem] rounded-[1.5625rem] border border-red px-3',
+            'font-medium text-red text-[0.9375rem]',
+          )}
+        >
+          On Sale!
+        </span>
+      )}
+      <Image
+        data={selectedImage}
+        sizes="(min-width: 45em) 20vw, 50vw"
+        className={clsx(commonImageStyles, 'group-hover:opacity-0')}
+      />
+      {product.images.nodes.length > 1 && (
+        <Image
+          data={getNextImage(product.images.nodes, selectedImage)}
+          sizes="(min-width: 45em) 20vw, 50vw"
+          loading="lazy"
+          className={clsx(
+            commonImageStyles,
+            'absolute start-0 top-0 size-full opacity-0 group-hover:opacity-100',
+          )}
+        />
+      )}
+    </Link>
+  );
+}
+
+function ProductOptions({options, selectedOption, setSelectedOption}) {
+  return options.map((option) => (
+    <div key={option.id} className="flex gap-x-[0.3125rem]">
+      {option.values.map((value) => (
+        <button
+          key={value}
+          title={value}
+          className={clsx(
+            'relative rounded-full border size-[1.25rem]',
+            {
+              'border-white before:bg-primary before:absolute before:-start-[0.125rem] before:-top-[0.125rem] before:-z-1 before:rounded-full before:size-[1.375rem]':
+                selectedOption === value,
+              'border-transparent cursor-pointer': selectedOption !== value,
+            },
+            COLOR_MAP[value],
+          )}
+          onClick={(e) => {
+            e.preventDefault();
+            setSelectedOption(value);
+          }}
+        />
+      ))}
+    </div>
+  ));
+}
+
+function ProductDetails({
+  product,
+  selectedVariantPrice,
+  selectedVariantCompareAtPrice,
+}) {
+  return (
+    <div className="flex flex-col gap-y-1.5">
+      {/* it's worth using "em" for line height, as it depends proportionally on the font size */}
+      <p className="text-sm leading-[1.14em] text-secondary">
+        {product.vendor}
+      </p>
+      {/* TODO: don't forget about semanticaly correct tags where it's needed (H4 as an example here) */}
+      <h4 className="font-medium leading-[1.125em] text-primary">
+        <Link to={`/products/${product.handle}`}>{product.title}</Link>
+      </h4>
+      <p className="flex gap-x-2">
+        {selectedVariantCompareAtPrice && (
+          <span className="text-secondary leading-[1.14em] line-through">
+            <Money data={selectedVariantCompareAtPrice} />
+          </span>
+        )}
+        <Money
+          data={selectedVariantPrice}
+          className={clsx(
+            selectedVariantCompareAtPrice ? 'text-red' : 'text-secondary',
+            'leading-[1.14em]',
+          )}
+        />
+      </p>
     </div>
   );
 }
@@ -160,6 +286,7 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
   fragment RecommendedProduct on Product {
     id
     title
+    vendor
     handle
     priceRange {
       minVariantPrice {
@@ -167,13 +294,35 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
         currencyCode
       }
     }
-    images(first: 1) {
+    options {
+      id
+      name
+      values
+    }
+    images(first: 12) {
       nodes {
         id
         url
         altText
         width
         height
+      }
+    }
+    variants(first: 6) {
+      nodes {
+        id
+        price {
+          amount
+          currencyCode
+        }
+        compareAtPrice {
+          amount
+          currencyCode
+        }
+        selectedOptions {
+          name
+          value
+        }
       }
     }
   }

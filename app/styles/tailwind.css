@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&display=swap');
+@import 'tailwindcss';
+
+/* Just in case, Tailwind CSS 4.0 is making the framework feel CSS-native,
+and less like a JavaScript library, so no need tailwind.config.js anymore */
+@theme {
+  --font-roboto: 'Roboto', sans-serif;
+
+  --color-primary: #0a4874;
+  --color-secondary: #111111;
+
+  --color-silver: #e8e8e8;
+  --color-red: #ff0000;
+
+  --color-orange: #ff6633;
+  --color-green: #006600;
+  --color-blue: #00639c;
+  --color-yellow: #fce78d;
+  --color-pink: #ffccff;
+  --color-navy: #19264b;
+}
